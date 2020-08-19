@@ -4,18 +4,20 @@
  * webpack 默认配置文件
  */
 
+const WebpackChain = require('webpack-chain');
 const { VueLoaderPlugin } = require('vue-loader');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ManifestPlugin = require('webpack-manifest-plugin');
-const HardSourceWebpackPlugin = require('hard-source-webpack-plugin');
 const FriendlyErrorsPlugin = require('friendly-errors-webpack-plugin');
-const WebpackBundleAnalyzer = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
-const pathResolver = dir => `${projectPath}${dir.substr(1)}`;
-const WebpackChain = require('webpack-chain');
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 // 获取 welabx-config.js 配置文件
-const userConfig = require('./resolve.userconf');
-// 获取当前项目路径
-const projectPath = process.env.INIT_CWD;
+const {
+    context,
+    projectPath,
+    userConfig,
+    STAGE,
+} = require('./resolve.userconf');
+const pathResolver = dir => `${projectPath}${dir.substr(1)}`;
 // 核心配置项实例
 const coreConfig = new WebpackChain();
 
@@ -48,10 +50,10 @@ function resolveEntry () {
 coreConfig
     .mode('development')
     .output
-        .path(`${projectPath}/${userConfig.outputDir || 'dist'}`)
+        .path(`${projectPath}/${userConfig.outputDir || 'dist'}${context}`)
         .filename(`${userConfig.assetsDir || 'static'}/js/[name].[hash].js`)
         .chunkFilename(`${userConfig.assetsDir || 'static'}/js/[name].[hash].js`)
-        .publicPath(userConfig.publicPath || '/')
+        .publicPath(`${userConfig.publicPath || ''}${context}`)
         .end()
 
 // 添加单页面/多页面入口 js 和 html
@@ -184,9 +186,6 @@ coreConfig
     .plugin('vue-loader')
         .use(VueLoaderPlugin)
         .end()
-    .plugin('hardSource')
-        .use(HardSourceWebpackPlugin)
-        .end()
     .plugin('friendly-errors')
         .use(FriendlyErrorsPlugin)
         .end()
@@ -197,15 +196,16 @@ coreConfig
 // 分析命令行参数
 const args = JSON.parse(process.env.npm_config_argv).cooked;
 
-// 添加WebpackBundleAnalyzer插件
+// 添加 BundleAnalyzerPlugin 插件
 if (args.includes('--report')) {
     coreConfig
         .plugin('report')
-            .use(WebpackBundleAnalyzer)
+            .use(BundleAnalyzerPlugin)
             .end()
 }
 
 module.exports = {
     coreConfig,
     userConfig,
+    STAGE,
 };
